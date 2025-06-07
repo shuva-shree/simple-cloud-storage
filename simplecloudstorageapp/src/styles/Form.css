@@ -1,0 +1,61 @@
+.form-card {
+  max-width: 500px;
+  margin: 80px auto;
+  padding: 40px 35px;
+  border-radius: 16px;
+  background: #ffffff;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.1);
+  transition: 0.3s ease-in-out;
+  text-align: center;
+}
+
+.form-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.15);
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  margin-top: 30px;
+}
+
+.form-title {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #2c3e50;
+  margin-bottom: 10px;
+}
+
+.welcome-text {
+  font-size: 1rem;
+  color: #7f8c8d;
+  margin-bottom: 25px;
+}
+
+.logo {
+  width: 80px;
+  margin-bottom: 15px;
+}
+
+.MuiTextField-root label {
+  color: #555;
+}
+
+.MuiTextField-root input {
+  background-color: #f9fbfd;
+}
+
+.MuiButton-root {
+  background: linear-gradient(to right, #667eea, #764ba2);
+  color: white;
+  padding: 12px;
+  font-weight: bold;
+  border-radius: 8px;
+  transition: background 0.3s;
+}
+
+.MuiButton-root:hover {
+  background: linear-gradient(to right, #5a67d8, #6b46c1);
+}
