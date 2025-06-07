@@ -32,8 +32,12 @@ public class File {
     @JoinColumn(name = "folder_id")
     private Folder folder;
     private String fileName;
+    @Column(unique = true)
     private String s3_key;
     private long fileSize;
+
+    @Column(nullable = false, unique = true)
+    private String fileHash;
     private String fileType;
     private String filePath;
     private boolean isPublic;
@@ -172,5 +176,13 @@ public class File {
 
     public void setTags(Set<Tag> tags) {
         this.tags = tags;
+    }
+
+    public String getFileHash() {
+        return fileHash;
+    }
+
+    public void setFileHash(String fileHash) {
+        this.fileHash = fileHash;
     }
 }

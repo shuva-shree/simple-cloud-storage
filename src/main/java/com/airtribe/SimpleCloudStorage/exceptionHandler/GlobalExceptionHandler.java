@@ -21,5 +21,11 @@ public class GlobalExceptionHandler {
                 .body(new ErrorResponse("UNAUTHORIZED", ex.getMessage()));
     }
 
+    @ExceptionHandler(TooManyRequestsException.class)
+    public ResponseEntity<ErrorResponse> handleTooManyRequestsException(TooManyRequestsException ex) {
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .body(new ErrorResponse("TOO_MANY_REQUESTS", ex.getMessage()));
+    }
+
 }
 

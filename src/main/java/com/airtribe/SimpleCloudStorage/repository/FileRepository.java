@@ -16,6 +16,7 @@ public interface FileRepository extends JpaRepository<File,Integer> {
 
 
 
+
     @Query("SELECT f FROM File f " +
             "WHERE f.userId = :userId OR " +
             "f.isPublic = true OR " +
@@ -33,4 +34,5 @@ public interface FileRepository extends JpaRepository<File,Integer> {
                                  @Param("tag") String tag);
 
 
+    Optional<File> findByFileHash(String fileHash);
 }

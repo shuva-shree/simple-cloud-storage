@@ -32,6 +32,7 @@ public class UserService {
 
     public AuthenticationResponse registerUser(RegisterUser registeredUser) {
         Role role = registeredUser.getUsername().contains("admin")?Role.ADMIN:Role.USER;
+
         Users user = Users.builder()
                 .username(registeredUser.getUsername())
                 .email(registeredUser.getEmail())
@@ -41,6 +42,10 @@ public class UserService {
                 .last_login(new Date())
                 .role(role)
                 .build();
+
+        if (userRepository.existsByUsername(user.getUsername())) {
+            throw new RuntimeException("Username already exists");
+        }
 
         userRepository.save(user);
 

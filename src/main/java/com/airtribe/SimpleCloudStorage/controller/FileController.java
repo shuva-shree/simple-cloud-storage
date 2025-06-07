@@ -28,6 +28,8 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.FileNotFoundException;
 import java.nio.file.AccessDeniedException;
+import java.time.Instant;
+import java.time.temporal.Temporal;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -88,7 +90,6 @@ public class FileController {
                     .body(new ErrorResponse("File upload failed", "UPLOAD_FAILED"));
         }
     }
-
     @GetMapping("/download/{fileId}")
     public ResponseEntity<Resource> downloadFile(@PathVariable Integer fileId,
                                                  @RequestHeader(HttpHeaders.AUTHORIZATION) String authHeader,
@@ -114,12 +115,25 @@ public class FileController {
 
         Resource resource = fileStorageService.loadFileAsResource(fileId, file.getS3_key());
 
+        // Extract filename and content type
+        String filename = file.getFileName(); // Should include extension
+        String fileType = file.getFileType(); // e.g., application/pdf, image/png
+        log.info("fileType",fileType);
+        log.info("fileName",filename);
+
+        // Use Spring's ContentDisposition for better encoding
+        ContentDisposition contentDisposition = ContentDisposition
+                .attachment()
+                .filename(filename)
+                .build();
+
         return ResponseEntity.ok()
-                .contentType(MediaType.parseMediaType(file.getFileType()))
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + file.getFileName() + "\"")
+                .contentType(MediaType.parseMediaType(fileType))
+                .header(HttpHeaders.CONTENT_DISPOSITION, contentDisposition.toString())
                 .header("X-File-Id", String.valueOf(file.getFile_id()))
                 .body(resource);
     }
+
 
     @GetMapping
     public ResponseEntity<List<FileResponse>> listUserFiles(@RequestHeader(HttpHeaders.AUTHORIZATION) String authHeader,
@@ -152,12 +166,13 @@ public class FileController {
 
         return ResponseEntity.ok(response);
     }
-
     @GetMapping("/{fileId}/versions")
-    public ResponseEntity<?> getFileVersions(@PathVariable Integer fileId,
-                                             @AuthenticationPrincipal Users user) {
+    public ResponseEntity<?> getFileVersions(
+            @PathVariable Integer fileId,
+            @AuthenticationPrincipal Users user) {
+
         try {
-            // Validate access
+            // 1. Validate file exists and user has access
             File file = fileRepository.findById(fileId)
                     .orElseThrow(() -> new FileNotFoundException("File not found"));
 
@@ -166,18 +181,39 @@ public class FileController {
                         .body(new ErrorResponse("ACCESS_DENIED", "You don't have access to this file"));
             }
 
+            // 2. Get versions from storage service
             List<FileVersionResponse> versions = fileStorageService.listFileVersions(fileId);
+
+            // 3. Format response data consistently
+            versions.forEach(version -> {
+                // Ensure date is in milliseconds since epoch (JavaScript-friendly format)
+                log.error("Last Modified Date: {}",version.getCreatedAt());
+                log.error("Last Modified Date: {}",version.getVersion());
+                log.error("Last Modified Date: {}",version.getSize());
+                if (version.getCreatedAt() != null) {
+                    if (version.getCreatedAt() instanceof Instant) {
+                        version.setCreatedAt((Instant) version.getCreatedAt());
+                    } else if (version.getCreatedAt() instanceof Temporal) {
+                        version.setCreatedAt(Instant.from((Temporal) version.getCreatedAt()));
+                    }
+                }
+
+
+                version.setSize(version.getSize() != null ? version.getSize() : 0L);
+            });
+
             return ResponseEntity.ok(versions);
 
         } catch (FileNotFoundException e) {
+            log.error("File not found: {}", fileId, e);
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(new ErrorResponse("NOT_FOUND", e.getMessage()));
+                    .body(new ErrorResponse("NOT_FOUND", "File not found with ID: " + fileId));
         } catch (Exception e) {
+            log.error("Error retrieving versions for file: {}", fileId, e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(new ErrorResponse("ERROR", "Failed to retrieve versions"));
+                    .body(new ErrorResponse("SERVER_ERROR", "Failed to retrieve versions. Please try again."));
         }
     }
-
     @PostMapping("/{fileId}/versions/{versionId}/restore")
     public ResponseEntity<?> restoreVersion(@PathVariable Integer fileId,
                                             @PathVariable String versionId,
@@ -206,8 +242,9 @@ public class FileController {
             if (multipartFile.isEmpty()) {
                 return ResponseEntity.badRequest().body(new ErrorResponse("File cannot be empty", "FILE_EMPTY"));
             }
+            boolean isPublicValue = (isPublic != null) ? isPublic : false;
 
-            File updatedFile = fileStorageService.updateFile(fileId, multipartFile, user.getUserId(), isPublic);
+            File updatedFile = fileStorageService.updateFile(fileId, multipartFile, user.getUserId(), isPublicValue);
 
             List<String> tagNames = Optional.ofNullable(updatedFile.getTags())
                     .orElse(Collections.emptySet())

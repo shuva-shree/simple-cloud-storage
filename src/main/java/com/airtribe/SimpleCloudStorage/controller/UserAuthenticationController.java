@@ -6,6 +6,7 @@ import com.airtribe.SimpleCloudStorage.dto.RegisterUser;
 import com.airtribe.SimpleCloudStorage.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -18,9 +19,14 @@ public class UserAuthenticationController {
     private final UserService userService;
 
     @PostMapping("/register")
-    public ResponseEntity<AuthenticationResponse> registerUser(@RequestBody RegisterUser registeredUser){
+    public ResponseEntity<?> registerUser(@RequestBody RegisterUser registeredUser){
 
-        return ResponseEntity.ok(userService.registerUser(registeredUser));
+        try {
+            AuthenticationResponse response = userService.registerUser(registeredUser);
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException ex) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(ex.getMessage());
+        }
 
     }
 
